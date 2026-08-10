@@ -24,7 +24,7 @@ set yet* below.
   below. Do not fill this in with a guess.
 - **The production domain** — not yet provided. Every reference to it in
   this repo (`deploy/nginx.conf`, this README, and the test that pins the
-  two together) uses the placeholder `api.landofwolf.example`. **This must
+  two together) uses the placeholder `api.landwolfonhood.com`. **This must
   be replaced before deploying.** `deploy/nginx.conf` explicitly 444s any
   request whose Host header does not match `server_name` — if the
   placeholder ships as-is, the real frontend's requests get silently
@@ -54,17 +54,17 @@ npm run probe             # check each upstream and print what it returned
 
 ```ini
 TOKEN_ADDRESS=<the real $WOLF contract — not yet known, do not guess>
-CORS_ORIGIN=https://landofwolf.example
+CORS_ORIGIN=https://landwolfonhood.com
 ```
 
-(Replace `landofwolf.example` with the real site domain once it exists —
+(Replace `landwolfonhood.com` with the real site domain once it exists —
 see *Two things not set yet* above.)
 
 **2. In the frontend's `.env`** (`D:\projects\tokenmeme2\.env`):
 
 ```ini
 VITE_USE_MOCK_API=false
-VITE_API_BASE_URL=https://api.landofwolf.example
+VITE_API_BASE_URL=https://api.landwolfonhood.com
 ```
 
 That's it. No frontend source file is touched — see "Why it doesn't need a
@@ -81,10 +81,10 @@ pm2 start ecosystem.config.cjs
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/wolf-api
 sudo ln -sf /etc/nginx/sites-available/wolf-api /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d api.landofwolf.example --redirect
+sudo certbot --nginx -d api.landwolfonhood.com --redirect
 ```
 
-**Before any of this**, replace every `api.landofwolf.example` placeholder
+**Before any of this**, replace every `api.landwolfonhood.com` placeholder
 in `deploy/nginx.conf` (and the `certbot -d` flag above) with the real
 domain — see the warning banner at the top of that file.
 

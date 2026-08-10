@@ -49,11 +49,11 @@ test('rejects a non-http upstream URL', () => {
 
 test('parses a comma-separated CORS allowlist', () => {
   const config = buildConfig({
-    CORS_ORIGIN: 'http://localhost:5173, https://landofwolf.example/',
+    CORS_ORIGIN: 'http://localhost:5173, https://landwolfonhood.com/',
   })
   assert.deepEqual(config.corsOrigins, [
     'http://localhost:5173',
-    'https://landofwolf.example',
+    'https://landwolfonhood.com',
   ])
 })
 
