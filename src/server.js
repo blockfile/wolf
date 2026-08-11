@@ -152,6 +152,59 @@ export function createServer({ config, statsService, cache, logger = console }) 
      that reads it. */
   let lastWarnedAt = null
 
+  /* GET /stats — what the Landwolf site actually calls.
+   *
+   * The site (D:\projects\tokenmeme1, src/api/stats.js) asks for `/stats` and
+   * reads a flat `{ marketCapUsd, holders }`. It is a different frontend from
+   * the one /coin/stats was shaped for: it has no burned tile, no 24h deltas,
+   * no marquee, and its identity — contract, socials, buy link — is
+   * hard-coded in src/config/token.js and never touches the network. So the
+   * five static /coin/* and /gallery routes below serve nothing it asks for.
+   *
+   * Both shapes are served rather than one replaced, because they cost the
+   * same: this route reads the SAME cached collect() the others do, so it
+   * adds no RPC call, no round trip and no wait budget of its own.
+   *
+   * Field names are the site's, not this backend's — `marketCapUsd`, not
+   * `marketCap`. A rename here shows up as a permanently blank tile with no
+   * error anywhere, because the site reads a key that isn't there. */
+  app.get('/stats', async (req, res) => {
+    try {
+      const { value, updatedAt } = await withDeadline(
+        cache.get(() => statsService.collect()),
+        config.statsWaitMs,
+        () =>
+          new StatsTimeoutError(
+            `stats collection exceeded the ${config.statsWaitMs}ms wait budget`,
+          ),
+      )
+
+      if (value?.warnings?.length && updatedAt !== lastWarnedAt) {
+        lastWarnedAt = updatedAt
+        logger.warn?.('[stats] degraded:', value.warnings.join('; '))
+      }
+
+      res.setHeader(
+        'Cache-Control',
+        `public, max-age=${Math.floor(config.cacheTtlMs / 1000)}`,
+      )
+      res.json({
+        marketCapUsd: value.marketCap,
+        holders: value.holders,
+      })
+    } catch (err) {
+      if (err instanceof StatsTimeoutError) {
+        logger.warn?.(`[stats] cold start: no cached value within ${config.statsWaitMs}ms`)
+        return res.status(503).json({
+          error: 'stats warming up',
+          detail: 'no cached figures yet; try again shortly',
+        })
+      }
+      logger.error?.('[stats] failed:', err.message)
+      res.status(503).json({ error: 'stats unavailable', detail: err.message })
+    }
+  })
+
   app.get('/coin/stats', async (req, res) => {
     /* No per-request AbortController here (deliberately — see withDeadline's
        comment above): with the background refresher (refresher.js) keeping

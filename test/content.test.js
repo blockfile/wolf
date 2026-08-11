@@ -4,16 +4,26 @@ import assert from 'node:assert/strict'
 import { coinMeta, tickerFeed, galleryCategories, galleryItems } from '../src/content.js'
 import { parseAddress } from '../src/config.js'
 
-test('coinMeta.contract is an obvious placeholder, not a real address and not left over from another token', () => {
-  // The real $WOLF contract has not been provided yet (see .env.example).
-  // Rather than invent an address, coinMeta.contract carries a human-readable
-  // sentinel that unmistakably still needs filling in. parseAddress is the
-  // same 0x-format validator config.js uses for TOKEN_ADDRESS — asserting it
-  // does NOT parse as an address here proves this value cannot be mistaken
-  // for a real, launched contract.
-  assert.equal(coinMeta.contract, 'SET_CONTRACT_ADDRESS_BEFORE_LAUNCH')
-  assert.throws(() => parseAddress(coinMeta.contract, 'coinMeta.contract'))
+test('coinMeta.contract is the verified LANDWOLF address, and no other token', () => {
+  /* Verified on-chain 2026-08-11 against rpc.mainnet.chain.robinhood.com:
+     symbol LANDWOLF, name "Landwolf on Hood", 18 decimals, 1,000,000,000
+     supply. It matches the address the site itself hard-codes in
+     src/config/token.js (D:\projects\tokenmeme1) — the two must agree, or
+     the copy button hands out one token while the tiles price another.
+
+     Pinned exactly rather than merely "parses as an address". The failure
+     this guards is not a malformed value; it is a well-formed address for
+     the WRONG token, which no format check can catch and which would put
+     another project's market cap under this brand. */
+  assert.equal(coinMeta.contract, '0x8907ece9cbba1e2766263b3b5126ec65ab3ff77c')
+
+  // Parses as a real 0x address, by the same validator config.js applies to
+  // TOKEN_ADDRESS.
+  assert.doesNotThrow(() => parseAddress(coinMeta.contract, 'coinMeta.contract'))
+
+  // The two wrong-token states this repo could plausibly regress into.
   assert.notEqual(coinMeta.contract, '0x105cca066775368454bf243d3dd4c623c7e6150c', 'must not be the donor $BRETT contract')
+  assert.notEqual(coinMeta.contract, 'SET_CONTRACT_ADDRESS_BEFORE_LAUNCH', 'the pre-launch sentinel must not survive into production')
 })
 
 test('coinMeta identifies Land of Wolf, not the donor project', () => {

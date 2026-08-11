@@ -242,13 +242,61 @@ test('unknown routes 404 as JSON', async () => {
 /* not 404 the identity panel, marquee or gallery.                         */
 /* ---------------------------------------------------------------------- */
 
-test('GET /coin/meta serves Land of Wolf identity, with an obvious placeholder contract until launch', async () => {
+test('GET /coin/meta serves Land of Wolf identity with the verified LANDWOLF contract', async () => {
   await withServer({ config: CONFIG, collect: async () => PAYLOAD }, async (get) => {
     const body = await (await get('/coin/meta')).json()
-    assert.equal(body.contract, 'SET_CONTRACT_ADDRESS_BEFORE_LAUNCH')
+    assert.equal(body.contract, '0x8907ece9cbba1e2766263b3b5126ec65ab3ff77c')
     assert.notEqual(body.contract, '0x105cca066775368454bf243d3dd4c623c7e6150c', 'must not be the donor $BRETT contract')
+    assert.notEqual(body.contract, 'SET_CONTRACT_ADDRESS_BEFORE_LAUNCH', 'the pre-launch sentinel must not survive into production')
     assert.equal(body.ticker, 'WOLF')
     assert.ok(Array.isArray(body.socials))
+  })
+})
+
+/* ---------------------------------------------------------------------- */
+/* GET /stats — the shape the Landwolf site actually calls.               */
+/* Different frontend, different contract: a flat {marketCapUsd, holders}, */
+/* no items array, no burned tile, no deltas. See src/api/stats.js in      */
+/* D:\projects\tokenmeme1.                                                 */
+/* ---------------------------------------------------------------------- */
+
+test('GET /stats serves the flat {marketCapUsd, holders} the site reads', async () => {
+  await withServer({ config: CONFIG, collect: async () => PAYLOAD }, async (get) => {
+    const res = await get('/stats')
+    const body = await res.json()
+
+    assert.equal(res.status, 200)
+    assert.equal(body.marketCapUsd, PAYLOAD.marketCap)
+    assert.equal(body.holders, PAYLOAD.holders)
+  })
+})
+
+/* The field name IS the integration. The site reads `marketCapUsd`; a
+   rename here renders a permanently blank tile with no error anywhere,
+   because it reads a key that simply is not present. */
+test('GET /stats names the field marketCapUsd, not marketCap', async () => {
+  await withServer({ config: CONFIG, collect: async () => PAYLOAD }, async (get) => {
+    const body = await (await get('/stats')).json()
+    assert.ok('marketCapUsd' in body, 'the site keys on marketCapUsd')
+    assert.equal(typeof body.marketCapUsd, 'number')
+  })
+})
+
+/* Same cached collection as /coin/stats — no second upstream fetch. This
+   project's lineage has taken two production outages from one extra
+   sequential upstream call, so a second collect() here would be that same
+   mistake in a new place. */
+test('GET /stats and GET /coin/stats share one cached collect(), not two', async () => {
+  let collects = 0
+  const collect = async () => {
+    collects += 1
+    return PAYLOAD
+  }
+  await withServer({ config: CONFIG, collect }, async (get) => {
+    await get('/coin/stats')
+    await get('/stats')
+    await get('/stats')
+    assert.equal(collects, 1, '/stats must reuse the cache, never collect again')
   })
 })
 

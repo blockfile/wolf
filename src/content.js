@@ -47,7 +47,7 @@ export const coinMeta = {
   // PLACEHOLDER — the real $WOLF contract address has not been provided.
   // Do not invent one. Set this (and TOKEN_ADDRESS in .env) together once
   // the token is deployed and verified.
-  contract: 'SET_CONTRACT_ADDRESS_BEFORE_LAUNCH',
+  contract: '0x8907ece9cbba1e2766263b3b5126ec65ab3ff77c',
   // PLACEHOLDER — real launch timestamp not yet known.
   launchedAt: 'SET_LAUNCH_DATE_BEFORE_LAUNCH',
   doors: '00:00',
